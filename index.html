@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오늘의 밥상</title>
+<style>
+  :root {
+    --bg: #f6ecdc;          /* 한지 */
+    --ink: #3b2a1e;         /* 먹색 갈색 */
+    --accent: #a8432a;      /* 단청 주홍 */
+    --wood-light: #a8683a;
+    --wood: #8a5129;
+    --wood-dark: #5e3418;
+    --card: #fffaf1;
+    --card-edge: #e6d3b3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.55), transparent 40%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Noto Serif KR", "Nanum Myeongjo", "Batang", serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+  }
+  header { text-align: center; margin-bottom: 28px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(28px, 6vw, 44px);
+    letter-spacing: .12em;
+  }
+  h1::after {
+    content: "";
+    display: block;
+    width: 56px; height: 3px;
+    margin: 12px auto 0;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .date { margin-top: 10px; font-size: 15px; opacity: .7; }
+
+  /* 둥근 상 */
+  .table {
+    --size: min(88vw, 560px);
+    position: relative;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background:
+      repeating-radial-gradient(circle at 50% 50%,
+        rgba(0,0,0,.035) 0 6px, transparent 6px 14px),
+      radial-gradient(circle at 40% 35%, var(--wood-light), var(--wood) 60%, var(--wood-dark));
+    box-shadow:
+      inset 0 0 0 10px var(--wood-dark),
+      inset 0 0 0 13px #b9824f,
+      0 24px 40px rgba(70, 40, 15, .35);
+  }
+
+  /* 반찬 카드 */
+  .dish {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: var(--card-w, 120px);
+    padding: 14px 8px 12px;
+    transform: translate(-50%, -50%);
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 18px;
+    box-shadow: 0 6px 14px rgba(50, 25, 8, .3);
+    text-align: center;
+    transition: transform .2s ease;
+    animation: place .5s ease both;
+  }
+  .dish:hover { transform: translate(-50%, -50%) translateY(-4px); }
+  .dish .emoji {
+    display: block;
+    font-size: calc(var(--card-w, 120px) * .42);
+    line-height: 1.1;
+  }
+  .dish .name {
+    display: block;
+    margin-top: 6px;
+    font-size: calc(var(--card-w, 120px) * .15);
+    font-weight: 700;
+    word-break: keep-all;
+  }
+  @keyframes place {
+    from { opacity: 0; margin-top: -12px; }
+    to   { opacity: 1; margin-top: 0; }
+  }
+
+  /* 원본 목록은 숨김 (카드로만 보여줌) */
+  #menu { display: none; }
+
+  footer { margin-top: 28px; font-size: 13px; opacity: .6; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>오늘의 밥상</h1>
+  <div class="date" id="date"></div>
+</header>
+
+<!--
+  ▼ 반찬 목록 ▼
+  한 줄씩 추가하면 상 위에 카드가 올라갑니다.
+  형식: <li data-emoji="이모지">이름</li>
+
+  예시 (아래 줄을 복사해서 <ul id="menu"> 안에 붙여 넣으세요):
+  <li data-emoji="🥚">계란말이</li>
+  <li data-emoji="🐟">고등어구이</li>
+  <li data-emoji="🥬">시금치나물</li>
+-->
+<ul id="menu">
+  <li data-emoji="🍚">밥</li>
+  <li data-emoji="🍲">국</li>
+  <li data-emoji="🥬">김치</li>
+</ul>
+
+<main class="table" id="table"></main>
+
+<footer>잘 먹겠습니다 🙏</footer>
+
+<script>
+  // 날짜 표시
+  const d = new Date();
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  document.getElementById("date").textContent =
+    `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
+
+  // 목록을 읽어 상 위에 카드 배치
+  const table = document.getElementById("table");
+  const items = [...document.querySelectorAll("#menu li")];
+
+  function layout() {
+    table.innerHTML = "";
+    const size = table.clientWidth;
+    const n = items.length;
+    // 반찬이 많아질수록 카드를 조금씩 작게
+    const cardW = Math.max(64, Math.min(size * 0.24, size * 0.9 / Math.sqrt(n + 1)));
+    const radius = n === 1 ? 0 : size / 2 - cardW * 0.75 - size * 0.04;
+
+    items.forEach((li, i) => {
+      // 첫 카드(밥)가 앞쪽 아래, 나머지는 원을 따라 시계방향
+      const angle = Math.PI / 2 + (2 * Math.PI * i) / n;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+
+      const card = document.createElement("div");
+      card.className = "dish";
+      card.style.setProperty("--card-w", cardW + "px");
+      card.style.left = `calc(50% + ${x}px)`;
+      card.style.top = `calc(50% + ${y}px)`;
+      card.style.animationDelay = i * 0.08 + "s";
+      card.innerHTML = `<span class="emoji"></span><span class="name"></span>`;
+      card.querySelector(".emoji").textContent = li.dataset.emoji || "🍽️";
+      card.querySelector(".name").textContent = li.textContent.trim();
+      table.appendChild(card);
+    });
+  }
+
+  layout();
+  window.addEventListener("resize", layout);
+</script>
+</body>
+</html>
